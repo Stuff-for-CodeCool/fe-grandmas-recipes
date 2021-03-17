@@ -22,8 +22,6 @@ const loadRecipes = async (limit = 0) => {
     }
 };
 
-const rand = (array) => array[Math.floor(Math.random() * array.length)];
-
 const Navbar = ({ children }) => (
     <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
         <div className="container">
@@ -202,9 +200,9 @@ const Recipe = ({ match }) => {
                         {recipe.photos.map((p, i) => (
                             <img
                                 key={i}
-                                src={rand(p)}
+                                src={p}
                                 alt={"Image of " + recipe.ingredients[i]}
-                                className="col-4 p-0 d-block"
+                                className="col p-0 d-block"
                             />
                         ))}
                     </div>
