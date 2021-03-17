@@ -8,8 +8,7 @@ import {
 import { useParams } from "react-router";
 import { useState, useEffect } from "react";
 
-const API_URL = "http://127.0.0.1:5000/recipes/";
-// const API_URL = "https://codecoolfrontendapi.herokuapp.com/recipes";
+const API_URL = "https://codecoolfrontendapi.herokuapp.com/recipes";
 
 const Recipe = () => {
     const { recipeId } = useParams();
