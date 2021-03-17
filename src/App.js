@@ -5,260 +5,246 @@ import {
     NavLink,
     Link,
 } from "react-router-dom";
+import { useParams } from "react-router";
 import { useState, useEffect } from "react";
 
-const loadRecipes = async (limit = 0) => {
-    const request = await fetch(
-        "https://codecoolfrontendapi.herokuapp.com/recipes/"
-    );
-    if (request.ok) {
-        const response = await request.json();
+const API_URL = "http://127.0.0.1:5000/recipes/";
+// const API_URL = "https://codecoolfrontendapi.herokuapp.com/recipes";
 
-        if (limit === 0) {
-            return response;
-        } else {
-            return response.slice(0, limit);
-        }
-    }
+const Recipe = () => {
+    const { recipeId } = useParams();
+
+    const [, setAuthorId] = useState(null);
+    const [author, setAuthor] = useState(null);
+    const [name, setName] = useState(null);
+    const [photos, setPhotos] = useState(null);
+    const [quantities, setQuantities] = useState(null);
+    const [units, setUnits] = useState(null);
+    const [ingredients, setIngredients] = useState(null);
+    const [description, setDescription] = useState(null);
+
+    useEffect(() => {
+        const loadRecipe = async () => {
+            const request = await fetch(API_URL + recipeId);
+
+            if (request.ok) {
+                let response = await request.json();
+                response = response[0];
+
+                setAuthorId(response.author);
+                setAuthor(response.authorname);
+                setName(response.recipe);
+                setPhotos(response.photos);
+                setQuantities(response.quantities);
+                setUnits(response.units);
+                setIngredients(response.ingredients);
+                setDescription(response.description);
+            }
+        };
+        loadRecipe();
+    }, [recipeId]);
+
+    return (
+        <>
+            <h1>{name}</h1>
+            <p className="lead">
+                A recipe by <Link to="/">{author}</Link>
+            </p>
+            <h5>Ingredients</h5>
+            <div className="row my-4">
+                {photos
+                    ? photos.map((p, i) => (
+                          <div className="col" key={i}>
+                              <img src={p} alt="" className="img-thumbnail" />
+                          </div>
+                      ))
+                    : null}
+            </div>
+            <ul className="list-group mb-4">
+                {quantities && units && ingredients
+                    ? quantities.map((_, i) => (
+                          <li className="list-group-item" key={i}>
+                              <strong>
+                                  {quantities[i]} {units[i]}
+                              </strong>{" "}
+                              {ingredients[i]}
+                          </li>
+                      ))
+                    : null}
+            </ul>
+            <h5>Directions</h5>
+            <p>{description}</p>
+        </>
+    );
 };
 
-const Navbar = ({ children }) => (
-    <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div className="container">
-            <NavLink className="navbar-brand" to="/">
-                Grandma's Recipes
-            </NavLink>
-            <button
-                className="navbar-toggler"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#recipes-collapsible-nav"
-                aria-controls="recipes-collapsible-nav"
-                aria-expanded="false"
-                aria-label="Toggle navigation"
-            >
-                <span className="navbar-toggler-icon"></span>
-            </button>
-            <div
-                className="collapse navbar-collapse"
-                id="recipes-collapsible-nav"
-            >
-                <ul className="navbar-nav me-auto mb-2 mb-lg-0">{children}</ul>
-            </div>
-        </div>
-    </nav>
-);
-
-const Footer = ({ children }) => (
-    <footer className="navbar navbar-expand-lg navbar-secondary bg-secondary text-white p-3">
-        <div className="container">
-            <small>{children}</small>
-        </div>
-    </footer>
-);
-
-const RecipeCard = ({ id, name, author, authorname }) => (
-    <div className="col">
+const RecipeCard = ({ author, authorname, id, name }) => (
+    <div className="col p-3">
         <div className="card">
             <div className="card-body">
                 <h5 className="card-title">
                     <Link to={"/recipe/" + id}>{name}</Link>
                 </h5>
-                <h6 className="card-subtitle mb-2 text-muted">
+                <div className="card-text">
                     A recipe by{" "}
                     <Link to={"/author/" + author}>{authorname}</Link>
-                </h6>
+                </div>
             </div>
         </div>
     </div>
 );
 
-const RecipeLister = ({ title, limit }) => {
-    const [recipes, setRecipes] = useState([]);
-    if (limit === null) {
-        limit = 0;
-    }
-
-    useEffect(() => {
-        const load = async () => {
-            const loaded = await loadRecipes(limit);
-            setRecipes(loaded);
-        };
-        load();
-    }, [limit]);
-
+const Lister = ({ name, recipes }) => {
     return (
         <>
-            <h1>{title}</h1>
-            {recipes.length ? (
-                <div className="row row-cols-1 row-cols-md-2 g-4">
-                    {recipes.map(({ id, name, authorname, author }) => (
+            <h1>{name}'s latest recipes</h1>
+            <div className="row row-cols-1 row-cols-md-3">
+                {recipes ? (
+                    recipes.map((r, i) => (
                         <RecipeCard
-                            key={id}
-                            id={id}
-                            name={name}
-                            author={author}
-                            authorname={authorname}
+                            key={i}
+                            author={r.author}
+                            authorname={r.authorname}
+                            id={r.id}
+                            name={r.name}
                         />
-                    ))}
-                </div>
-            ) : (
-                <div className="d-flex justify-content-center">
-                    <div className="spinner-border text-info" role="status">
+                    ))
+                ) : (
+                    <div className="spinner-border text-info">
                         <span className="visually-hidden">
-                            Loading recipe...
+                            Loading recipes...
                         </span>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
         </>
     );
 };
 
-const Home = () => <RecipeLister title="Grandma's latest recipes" limit="6" />;
+const AuthorLister = ({ recipes }) => {
+    const { authorId } = useParams();
 
-const Recipes = () => <RecipeLister title="Grandma's latest recipes" />;
-const Author = ({ match }) => {
-    const { id } = match.params;
+    const retete = recipes.filter((r) => r.author === parseInt(authorId, 10));
+    const name = retete && retete[0] ? retete[0].authorname : "Grandma";
 
-    const [recipes, setRecipes] = useState([]);
-
-    useEffect(() => {
-        const load = async () => {
-            const request = await fetch(
-                "https://codecoolfrontendapi.herokuapp.com/recipes/author/" + id
-            );
-            if (request.ok) {
-                const response = await request.json();
-
-                setRecipes(response);
-            }
-        };
-        load();
-    }, [id]);
-
-    return (
-        <>
-            {recipes.length ? (
-                <>
-                    <h1>{recipes[0].authorname}'s recipes</h1>
-                    <div className="row row-cols-1 row-cols-md-2 g-4">
-                        {recipes.map(({ id, name, authorname, author }) => (
-                            <RecipeCard
-                                key={id}
-                                id={id}
-                                name={name}
-                                author={author}
-                                authorname={authorname}
-                            />
-                        ))}
-                    </div>
-                </>
-            ) : (
-                <div className="d-flex justify-content-center">
-                    <div className="spinner-border text-info" role="status">
-                        <span className="visually-hidden">
-                            Loading recipe...
-                        </span>
-                    </div>
-                </div>
-            )}
-        </>
-    );
+    return <Lister name={name} recipes={retete} />;
 };
 
-const Recipe = ({ match }) => {
-    const { id } = match.params;
-    const [recipe, setRecipe] = useState(null);
+const App = () => {
+    const [allRecipes, setAllRecipes] = useState([]);
+    const [filteredRecipes, setFilteredRecipes] = useState([]);
+    const [search, setSearch] = useState("");
 
     useEffect(() => {
-        const loadRecipe = async () => {
-            const request = await fetch(
-                "https://codecoolfrontendapi.herokuapp.com/recipes/" + id
-            );
+        const loadRecipes = async () => {
+            const request = await fetch(API_URL);
             if (request.ok) {
                 const response = await request.json();
-                setRecipe(response[0]);
+                setAllRecipes(response);
+                setFilteredRecipes(response);
             }
         };
-        loadRecipe();
-    }, [id]);
+        loadRecipes();
+    }, []);
+
+    const handleSearch = (e) => {
+        e.preventDefault();
+        const text = e.target.value.toLowerCase();
+
+        if (text === "") {
+            setSearch("");
+            setFilteredRecipes(allRecipes);
+        } else {
+            setFilteredRecipes(
+                allRecipes.filter((r) => r.name.toLowerCase().includes(text))
+            );
+            setSearch(text);
+        }
+    };
+
     return (
-        <>
-            {recipe ? (
-                <>
-                    <h1>{recipe.recipe}</h1>
-                    <p className="lead">
-                        A recipe by{" "}
-                        <Link to={"/author/" + recipe.author}>
-                            {recipe.authorname}
-                        </Link>
-                    </p>
-                    <hr />
-                    <h3>Ingredients</h3>
-                    <div className="row">
-                        {recipe.photos.map((p, i) => (
-                            <img
-                                key={i}
-                                src={p}
-                                alt={"Image of " + recipe.ingredients[i]}
-                                className="col p-0 d-block"
-                            />
-                        ))}
-                    </div>
-                    <ul className="list-group m-5">
-                        {recipe.units.map((_, i) => (
-                            <li key={i} className="list-group-item">
-                                <strong>
-                                    {recipe.quantities[i]} {recipe.units[i]}
-                                </strong>{" "}
-                                {recipe.ingredients[i]}
+        <Router>
+            <nav className="navbar navbar-expand-lg navbar-dark bg-primary bg-gradient">
+                <div className="container">
+                    <NavLink className="navbar-brand" to="/">
+                        Grandma's Recipes
+                    </NavLink>
+                    <button
+                        className="navbar-toggler"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#navigation"
+                    >
+                        <span className="navbar-toggler-icon" />
+                    </button>
+                    <div id="navigation" className="collapse navbar-collapse">
+                        <ul className="navbar-nav me-auto">
+                            <li className="nav-item">
+                                <NavLink
+                                    className="nav-link"
+                                    activeClassName="active"
+                                    to="/"
+                                >
+                                    Home
+                                </NavLink>
                             </li>
-                        ))}
-                    </ul>
-                    <h4>Instructions</h4>
-                    <p>{recipe.description}</p>
-                </>
-            ) : (
-                <div className="d-flex justify-content-center">
-                    <div className="spinner-border text-info" role="status">
-                        <span className="visually-hidden">
-                            Loading recipe...
-                        </span>
+                            <li className="nav-item">
+                                <NavLink
+                                    className="nav-link"
+                                    activeClassName="active"
+                                    to="/recipes/"
+                                >
+                                    All recipes
+                                </NavLink>
+                            </li>
+                        </ul>
+                        <form className="d-flex">
+                            <input
+                                type="search"
+                                placeholder="Search"
+                                className="form-control"
+                                name="search"
+                                value={search}
+                                onChange={handleSearch}
+                            />
+                        </form>
                     </div>
                 </div>
-            )}
-        </>
+            </nav>
+
+            <div className="container my-4">
+                <Switch>
+                    <Route path="/recipe/:recipeId/">
+                        <Recipe />
+                    </Route>
+                    <Route path="/author/:authorId/">
+                        <AuthorLister recipes={filteredRecipes} />
+                    </Route>
+                    <Route path="/recipes/">
+                        <Lister name="Grandma" recipes={filteredRecipes} />
+                    </Route>
+                    <Route exact path="/">
+                        {allRecipes ? (
+                            <Lister
+                                name="Grandma"
+                                recipes={
+                                    search
+                                        ? filteredRecipes
+                                        : allRecipes.slice(0, 6)
+                                }
+                            />
+                        ) : null}
+                    </Route>
+                </Switch>
+            </div>
+
+            <footer className="mt-auto bg-secondary text-light">
+                <div className="container fs-6 p-3">
+                    Grandma's Recipes &copy; 2021 CodeCool
+                </div>
+            </footer>
+        </Router>
     );
 };
-
-const App = () => (
-    <Router>
-        <Navbar>
-            <NavLink className="nav-link" activeClassName="active" exact to="/">
-                Home
-            </NavLink>
-            <NavLink
-                className="nav-link"
-                activeClassName="active"
-                exact
-                to="/recipes"
-            >
-                All recipes
-            </NavLink>
-        </Navbar>
-
-        <div className="container flex-grow-1 py-3">
-            <Switch>
-                <Route path="/author/:id" component={Author} />
-                <Route path="/recipe/:id" component={Recipe} />
-                <Route path="/recipes" component={Recipes} />
-                <Route path="/" component={Home} />
-            </Switch>
-        </div>
-
-        <Footer>Grandma's Recipes</Footer>
-    </Router>
-);
 
 export default App;
